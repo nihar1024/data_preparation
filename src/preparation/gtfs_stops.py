@@ -103,7 +103,7 @@ class GTFSStopsPreparation:
 
             # Identify wheelchair accessibility based on GTFS classification rules
             classify_gtfs_stop_sql = f"""
-                INSERT INTO {result_table} (stop_id, category, name, modes, source, wheelchair, geom)
+                INSERT INTO {result_table} (stop_id, name, category, bus, tram, metro, rail, other, source, wheelchair, geom)
                 WITH clipped_gfts_stops AS (
                     SELECT stop_id, stop_name, geom, h3_3, wheelchair_boarding, parent_station
                     FROM {self.gtfs_schema}.stops
@@ -133,18 +133,30 @@ class GTFSStopsPreparation:
                     ON child.parent_station = parent.parent_stop_id
                 )
                 SELECT
-                stop_id,
-                    '{json.dumps(self.data_config_preparation['classification']['station_categories'])}'::jsonb ->> basic.identify_dominant_mode(
-                        ARRAY_AGG(DISTINCT route_type),
-                        '{json.dumps(flat_mode_mapping)}'::JSONB
-                    ) AS category,
-                    stop_name AS name,
-                    ARRAY_AGG(DISTINCT '{json.dumps(flat_mode_mapping)}'::JSONB ->> route_type) AS modes,
+                    stop_id,
+                    name,
+                    ARRAY_TO_STRING(modes, '_') AS category,
+                    CASE WHEN 'bus' = ANY(modes) THEN 'Yes' ELSE 'No' END AS bus,
+                    CASE WHEN 'tram' = ANY(modes) THEN 'Yes' ELSE 'No' END AS tram,
+                    CASE WHEN 'metro' = ANY(modes) THEN 'Yes' ELSE 'No' END AS metro,
+                    CASE WHEN 'rail' = ANY(modes) THEN 'Yes' ELSE 'No' END AS rail,
+                    CASE WHEN 'other' = ANY(modes) THEN 'Yes' ELSE 'No' END AS other,
                     'DELFI' AS source,
-                    '{json.dumps(self.wheelchair_boarding_dic)}'::JSONB ->> updated_wheelchair_boarding AS wheelchair,
+                    wheelchair,
                     geom
-                FROM updated_wheelchair_info
-                GROUP BY stop_id, stop_name, geom, updated_wheelchair_boarding;
+                FROM (
+                    SELECT
+                        stop_id,
+                        stop_name AS name,
+                        ARRAY_AGG(
+                            DISTINCT '{json.dumps(flat_mode_mapping)}'::JSONB ->> route_type
+                            ORDER BY '{json.dumps(flat_mode_mapping)}'::JSONB ->> route_type
+                        ) AS modes,
+                        '{json.dumps(self.wheelchair_boarding_dic)}'::JSONB ->> updated_wheelchair_boarding AS wheelchair,
+                        geom
+                    FROM updated_wheelchair_info
+                    GROUP BY stop_id, stop_name, geom, updated_wheelchair_boarding
+                ) sub;
             """
 
             self.db.perform(classify_gtfs_stop_sql)

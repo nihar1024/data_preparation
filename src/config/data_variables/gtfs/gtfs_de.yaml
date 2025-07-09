@@ -1,9 +1,9 @@
 preparation:
-  start_date: "2025-02-04" # Must be a Tuesday for stop_times_optimized to be correct!
-  num_weeks: 26
-  network_dir: "gtfs_de_20250203"
-  target_schema: "gtfs_de_20250203"
+  start_date: "2025-04-08" # Must be a Tuesday for stop_times_optimized to be correct!
+  num_weeks: 35
+  network_dir: "20250407_fahrplaene_gesamtdeutschland_gtfs"
+  target_schema: "gtfs_de_20250407"
   regions_query: "SELECT nuts_id, nuts_name FROM public.nuts WHERE cntr_code IN ('DE') AND levl_code = '3';"
 
 export:
-  local_gtfs_schema: "gtfs_de_20250106"
+  local_gtfs_schema: "gtfs_de_20250407"
