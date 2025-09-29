@@ -1,0 +1,35 @@
+preparation:
+    local_gtfs_schema: "gtfs_combined"
+
+    region: | 
+        WITH 
+        bounds AS (
+            SELECT ST_Extent(geom) AS geom
+            FROM public.nuts
+            WHERE (cntr_code IN ('DE', 'CH') AND levl_code = '0')
+            OR (nuts_name IN ('Haut-Rhin'))
+        ),
+        merged_geometries AS (
+            SELECT ST_Union(geom) AS geom
+            FROM public.nuts
+            WHERE (cntr_code IN ('DE', 'CH') AND levl_code = '0')
+            OR (nuts_name IN ('Haut-Rhin'))
+        ),
+        grid AS (
+            SELECT ST_MakeEnvelope(
+                x::numeric, 
+                y::numeric, 
+                (x + 1)::numeric, 
+                (y + 1)::numeric, 
+                4326
+            ) AS geom
+            FROM generate_series(floor(ST_XMin((SELECT geom FROM bounds)))::integer, ceiling(ST_XMax((SELECT geom FROM bounds)))::integer, 1) AS x
+            CROSS JOIN generate_series(floor(ST_YMin((SELECT geom FROM bounds)))::integer, ceiling(ST_YMax((SELECT geom FROM bounds)))::integer, 1) AS y
+        ),
+        intersections AS (
+            SELECT 
+                (ST_Dump(ST_Intersection(m.geom, ST_Buffer(g.geom, -0.00001)))).geom AS geom
+            FROM merged_geometries m
+            JOIN grid g ON ST_Intersects(m.geom, g.geom)
+        )
+        SELECT geom FROM intersections WHERE ST_GeometryType(geom) = 'ST_Polygon'

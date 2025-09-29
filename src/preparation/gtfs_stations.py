@@ -16,6 +16,10 @@ class GTFSStationsPreparation:
         "bus": {
             3: "Bus",
             11: "Trolleybus",
+            201: "International Coach Service",
+            202: "National Coach Service",
+            204: "Regional Coach Service",
+            300: "Demand and Response Bus Service",
             700: "Bus Service",
             702: "Express Bus Service",
             704: "Local Bus Service",
@@ -46,7 +50,8 @@ class GTFSStationsPreparation:
             106: "Regional Rail Service",
             107: "Tourist Railway Service",
             109: "Suburban Railway",
-            202: "National Coach Service",
+            116: "Rack and Pinion Railway",
+            117: "Additional Rail Service",
             403: "All Urban Railway Services",
         },
         "other": {
@@ -55,6 +60,7 @@ class GTFSStationsPreparation:
             7: "Funicular",
             1000: "Water Transport Service",
             1300: "Aerial Lift Service",
+            1303: "Elevator Service",
             1400: "Funicular Service",
             1500: "Taxi Service",
             1700: "Gondola, Suspended cable car",
@@ -95,7 +101,7 @@ class GTFSStationsPreparation:
             ts = time.time()
 
             classify_gtfs_stop_sql = f"""
-                INSERT INTO {result_table} (stop_id, name, category, bus, tram, metro, rail, other, source, geom)
+                INSERT INTO {result_table} (stop_id, name, category, bus, tram, metro, rail, other, geom)
                 WITH parent_stations AS (
                     SELECT s.stop_id AS station_id, s.stop_name AS station_name, s.geom AS station_geom
                     FROM {self.gtfs_schema}.stops s
@@ -112,7 +118,7 @@ class GTFSStationsPreparation:
                     FROM clipped_gfts_stops c
                     CROSS JOIN LATERAL
                     (
-                        SELECT DISTINCT o.route_type
+                        SELECT DISTINCT ON (o.route_type, o.h3_3) o.route_type
                         FROM {self.gtfs_schema}.stop_times_optimized o
                         WHERE o.stop_id = c.stop_id
                         AND o.h3_3 = c.h3_3
@@ -128,7 +134,6 @@ class GTFSStationsPreparation:
                     CASE WHEN 'metro' = ANY(modes) THEN 'Yes' ELSE 'No' END AS metro,
                     CASE WHEN 'rail' = ANY(modes) THEN 'Yes' ELSE 'No' END AS rail,
                     CASE WHEN 'other' = ANY(modes) THEN 'Yes' ELSE 'No' END AS other,
-                    'DELFI' AS source,
                     geom
                 FROM (
                     SELECT
@@ -156,7 +161,7 @@ class GTFSStationsPreparation:
             ts = time.time()
 
             classify_gtfs_stop_sql = f"""
-                INSERT INTO {result_table} (stop_id, name, category, bus, tram, metro, rail, other, source, geom)
+                INSERT INTO {result_table} (stop_id, name, category, bus, tram, metro, rail, other, geom)
                 WITH clipped_gfts_stops AS (
                     SELECT stop_id, stop_name, geom, h3_3
                     FROM {self.gtfs_schema}.stops
@@ -168,7 +173,7 @@ class GTFSStationsPreparation:
                     FROM clipped_gfts_stops c
                     CROSS JOIN LATERAL
                     (
-                        SELECT DISTINCT o.route_type
+                        SELECT DISTINCT ON (o.route_type, o.h3_3) o.route_type
                         FROM {self.gtfs_schema}.stop_times_optimized o
                         WHERE o.stop_id = c.stop_id
                         AND o.h3_3 = c.h3_3
@@ -184,7 +189,6 @@ class GTFSStationsPreparation:
                     CASE WHEN 'metro' = ANY(modes) THEN 'Yes' ELSE 'No' END AS metro,
                     CASE WHEN 'rail' = ANY(modes) THEN 'Yes' ELSE 'No' END AS rail,
                     CASE WHEN 'other' = ANY(modes) THEN 'Yes' ELSE 'No' END AS other,
-                    'DELFI' AS source,
                     geom
                 FROM (
                     SELECT

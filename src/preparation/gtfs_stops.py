@@ -16,6 +16,10 @@ class GTFSStopsPreparation:
         "bus": {
             3: "Bus",
             11: "Trolleybus",
+            201: "International Coach Service",
+            202: "National Coach Service",
+            204: "Regional Coach Service",
+            300: "Demand and Response Bus Service",
             700: "Bus Service",
             702: "Express Bus Service",
             704: "Local Bus Service",
@@ -46,7 +50,8 @@ class GTFSStopsPreparation:
             106: "Regional Rail Service",
             107: "Tourist Railway Service",
             109: "Suburban Railway",
-            202: "National Coach Service",
+            116: "Rack and Pinion Railway",
+            117: "Additional Rail Service",
             403: "All Urban Railway Services",
         },
         "other": {
@@ -55,6 +60,7 @@ class GTFSStopsPreparation:
             7: "Funicular",
             1000: "Water Transport Service",
             1300: "Aerial Lift Service",
+            1303: "Elevator Service",
             1400: "Funicular Service",
             1500: "Taxi Service",
             1700: "Gondola, Suspended cable car",
@@ -103,7 +109,7 @@ class GTFSStopsPreparation:
 
             # Identify wheelchair accessibility based on GTFS classification rules
             classify_gtfs_stop_sql = f"""
-                INSERT INTO {result_table} (stop_id, name, category, bus, tram, metro, rail, other, source, wheelchair, geom)
+                INSERT INTO {result_table} (stop_id, name, category, bus, tram, metro, rail, other, wheelchair, geom)
                 WITH clipped_gfts_stops AS (
                     SELECT stop_id, stop_name, geom, h3_3, wheelchair_boarding, parent_station
                     FROM {self.gtfs_schema}.stops
@@ -115,7 +121,7 @@ class GTFSStopsPreparation:
                     FROM clipped_gfts_stops c
                     CROSS JOIN LATERAL
                     (
-                        SELECT DISTINCT o.route_type
+                        SELECT DISTINCT ON (o.route_type, o.h3_3) o.route_type
                         FROM {self.gtfs_schema}.stop_times_optimized o
                         WHERE o.stop_id = c.stop_id
                         AND o.h3_3 = c.h3_3
@@ -141,7 +147,6 @@ class GTFSStopsPreparation:
                     CASE WHEN 'metro' = ANY(modes) THEN 'Yes' ELSE 'No' END AS metro,
                     CASE WHEN 'rail' = ANY(modes) THEN 'Yes' ELSE 'No' END AS rail,
                     CASE WHEN 'other' = ANY(modes) THEN 'Yes' ELSE 'No' END AS other,
-                    'DELFI' AS source,
                     wheelchair,
                     geom
                 FROM (
