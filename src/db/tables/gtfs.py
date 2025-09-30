@@ -118,6 +118,7 @@ class GtfsTables:
             );
         """
 
+        # TODO: Check if using shapes is required
         return {
             "agency": sql_create_table_agency,
             "stops": sql_create_table_stops,
@@ -126,7 +127,7 @@ class GtfsTables:
             "stop_times": sql_create_table_stop_times,
             "calendar": sql_create_table_calendar,
             "calendar_dates": sql_create_table_calendar_dates,
-            "shapes": sql_create_table_shapes
+            # "shapes": sql_create_table_shapes
         }
 
     def sql_select_table(self) -> dict:
@@ -172,6 +173,7 @@ class GtfsTables:
             FROM {self.schema}.shapes
         """
 
+        # TODO: Check if using shapes is required
         return {
             "agency": sql_select_table_agency,
             "stops": sql_select_table_stops,
@@ -180,5 +182,5 @@ class GtfsTables:
             "stop_times": sql_select_table_stop_times,
             "calendar": sql_select_table_calendar,
             "calendar_dates": sql_select_table_calendar_dates,
-            "shapes": sql_select_table_shapes
+            # "shapes": sql_select_table_shapes
         }
