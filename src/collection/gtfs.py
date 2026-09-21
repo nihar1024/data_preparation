@@ -334,6 +334,7 @@ class GTFSCollection:
                 REFERENCES {self.schema}.stops(h3_3, stop_id);
                 CREATE INDEX ON {self.schema}.stop_times (h3_3, stop_id);
                 CREATE INDEX ON {self.schema}.stop_times (h3_3, trip_id);
+                CREATE INDEX ON {self.schema}.stop_times (trip_id);
                 """
         elif table == "trips":
             sql_command = f"""
